@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Autopoietisches lernendes System</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    .node circle { stroke: #fff; stroke-width: 1.5px; }
+    text { font: 12px sans-serif; pointer-events: none; }
+  </style>
+</head>
+<body>
+<svg width="100%" height="100%"></svg>
+<script>
+// --- Initiale Gedankenstruktur ---
+const intern = {
+  "Freiheit": ["Verantwortung","Grenzen","Autonomie","Entscheidung"],
+  "Verantwortung": ["Moral","Selbstbestimmung","Gesellschaft"],
+  "Grenzen": ["Ordnung","Chaos","Wachstum"],
+  "Autonomie": ["Selbstbewusstsein","Isolation","Verbindung"],
+  "Entscheidung": ["Zukunft","Zweifel","Handlung"],
+  "Moral": ["Werte","Normen","Konflikt"],
+  "Gesellschaft": ["Kommunikation","System","Normen"]
+};
+const internet = ["Blockchain","Memes","KI","Soziale Netzwerke"];
+const darknet = ["Anonymität","Kryptowährungen","Cypherpunks","Hidden Services"];
+
+// Graph-Daten
+let nodes = [{id:"Freiheit", typ:"intern"}];
+let links = [];
+
+// Force-Layout mit D3
+const svg = d3.select("svg");
+const width = window.innerWidth, height = window.innerHeight;
+const simulation = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(links).id(d=>d.id).distance(80))
+  .force("charge", d3.forceManyBody().strength(-150))
+  .force("center", d3.forceCenter(width/2, height/2));
+
+function update() {
+  const link = svg.selectAll(".link").data(links);
+  link.join("line").attr("stroke", "#999");
+
+  const node = svg.selectAll(".node").data(nodes, d=>d.id);
+  const nodeEnter = node.enter().append("g").attr("class", "node");
+  nodeEnter.append("circle").attr("r", 20)
+    .attr("fill", d => d.typ==="intern" ? "lightblue" : d.typ==="internet" ? "green" : "red");
+  nodeEnter.append("text").attr("dy", 4).attr("text-anchor", "middle").text(d => d.id);
+
+  nodeEnter.merge(node);
+  node.exit().remove();
+
+  simulation.nodes(nodes).on("tick", ticked);
+  simulation.force("link").links(links);
+  simulation.alpha(1).restart();
+}
+function ticked() {
+  svg.selectAll("line")
+    .attr("x1", d=>d.source.x).attr("y1", d=>d.source.y)
+    .attr("x2", d=>d.target.x).attr("y2", d=>d.target.y);
+  svg.selectAll(".node")
+    .attr("transform", d=>`translate(${d.x},${d.y})`);
+}
+
+// Nächste Operation (Gedanke)
+function naechsteOperation() {
+  const letzter = nodes[nodes.length-1];
+  let folge = null, typ = "intern";
+  const möglich = intern[letzter.id] || [];
+  if (möglich.length && Math.random() < 0.6) {
+    folge = möglich[Math.floor(Math.random()*möglich.length)];
+  } else {
+    if (Math.random() < 0.4) { folge = internet[Math.floor(Math.random()*internet.length)]; typ="internet"; }
+    else if (Math.random() < 0.2) { folge = darknet[Math.floor(Math.random()*darknet.length)]; typ="darknet"; }
+    else {
+      const zuf = nodes[Math.floor(Math.random()*nodes.length)];
+      folge = zuf.id;
+    }
+  }
+  if (Math.random() < (typ==="intern"?0.9:0.7)) {
+    if (!nodes.find(n=>n.id===folge)) nodes.push({id:folge, typ});
+    links.push({source: letzter.id, target: folge});
+    if (typ!=="intern") {
+      intern[folge] = intern[folge] || [];
+      intern[folge].push(letzter.id);
+    }
+    if (Math.random()<0.05) {
+      const meta = "Meta:"+folge;
+      if (!nodes.find(n=>n.id===meta)) {
+        nodes.push({id:meta, typ:"intern"});
+        links.push({source:folge, target:meta});
+      }
+    }
+  }
+  update();
+}
+
+// Starten
+update();
+setInterval(naechsteOperation, 500);
+</script>
+</body>
+</html>
